@@ -117,7 +117,7 @@ for i = 1:num_samples
     save(save_name, 'time', 'q_traj', 'qd_traj', 'dq_traj', 'q0_list', 'dq0_list', ...
         'fail_flag', 'q_limit');
 
-    fprintf('Simulation %d / %d done. Control= %d. \n', i, num_samples, fail_flag);
+    fprintf('Simulation %d / %d done. Control= %d. \n', i, num_samples, fail_flag(i));
 end
 
 disp('All simulations completed and saved.');
