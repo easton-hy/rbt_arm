@@ -3,7 +3,7 @@ clc; clear; close all;
 %% ----------------------------
 % 1. Configuration
 % -----------------------------
-num_samples = 1;                    % number of simulations
+num_samples = 50;                    % number of simulations
 save_folder = fullfile(pwd, 'sim_database_100Hz');
 if ~exist(save_folder, 'dir')
     mkdir(save_folder);
@@ -13,8 +13,8 @@ end
 % 2. Random initial conditions
 % -----------------------------
 n = 6; % 6 DOF system
-q_range  = [pi, pi];   % customize as needed
-dq_range = [-0, 0];
+q_range  = [-pi, pi];   % customize as needed
+dq_range = [-pi, pi];
 
 q0_list  = (q_range(2)-q_range(1))*rand(num_samples,n) + q_range(1);
 dq0_list = (dq_range(2)-dq_range(1))*rand(num_samples,n) + dq_range(1);
@@ -29,17 +29,17 @@ T  = 0:dt:20;
 Ts = 0.01;
 m = max(1, round(Ts/dt));
 
-kp = 1600;
+kp = 160;
 kd = 40;
 
 U_max = 8;          % 若你还想用饱和就保留；不想用可注释
 
 % desired q position
-qd_value = pi;
+qd_value = 0;
 qd_const = [qd_value; qd_value; qd_value; qd_value; qd_value; qd_value];
 
 % -------- NEW: controller-off condition --------
-q_limit = 0;      % 角度阈值（rad）。超过就永久关控制器
+q_limit = 2;      % 角度阈值（rad）。超过就永久关控制器
 % ----------------------------------------------
 
 %% ----------------------------
@@ -49,7 +49,6 @@ U_traj = [];
 fail_flag = false(num_samples,1);   % NEW: 记录是否触发关断（失败）
 
 for i = 1:num_samples
-    fprintf('Running simulation %d / %d...\n', i, num_samples);
 
     % initialize state
     q = q0_list(i, :)';
@@ -117,6 +116,8 @@ for i = 1:num_samples
     save_name = fullfile(save_folder, sprintf('sim_%04d.mat', i));
     save(save_name, 'time', 'q_traj', 'qd_traj', 'dq_traj', 'q0_list', 'dq0_list', ...
         'fail_flag', 'q_limit');
+
+    fprintf('Simulation %d / %d done. Control= %d. \n', i, num_samples, fail_flag);
 end
 
 disp('All simulations completed and saved.');
