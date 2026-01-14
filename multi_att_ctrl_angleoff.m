@@ -54,8 +54,8 @@ for i = 1:num_samples
     q = q0_list(i, :)';
     q_dot = dq0_list(i, :)';
 
-    % NEW: latch for controller off
-    controller_off = false;
+    % NEW: latch for controller off (per-joint)
+    controller_off = false(n,1);
 
     % storage
     X = [];
@@ -73,28 +73,26 @@ for i = 1:num_samples
         X = [X, [q; qd; q_dot]];
 
         % ---------- NEW: latch controller off forever ----------
-        if ~controller_off && any(abs(q) > q_limit)
-            controller_off = true;     % 永久关断
-            fail_flag(i) = true;       % 记录失败
-            U_hold = zeros(n,1);       % 关断后确保力矩为0
+        newly_off = ~controller_off & (abs(q) > q_limit);
+        if any(newly_off)
+            controller_off(newly_off) = true; % 永久关断对应关节
+            fail_flag(i) = true;              % 记录是否发生过关断
+            U_hold(newly_off) = 0;            % 关断后确保对应关节力矩为0
         end
         % ------------------------------------------------------
 
         % compute control (or set to zero if controller is off)
-        if controller_off
-            U = zeros(n,1);            % 控制器关掉，但系统继续运行
-        else
-            if mod(k-1, m) == 0
-                V = qd_ddot - kp*(q - qd) - kd*(q_dot - qd_dot);
-                D = inertiaMatrix(q);
-                g = gravityVector(q);
-                U_hold = D*V + g;
+        if mod(k-1, m) == 0
+            V = qd_ddot - kp*(q - qd) - kd*(q_dot - qd_dot);
+            D = inertiaMatrix(q);
+            g = gravityVector(q);
+            U_hold = D*V + g;
 
-                % torque saturation (optional)
-                %U_hold = min(max(U_hold, -U_max), U_max);
-            end
-            U = U_hold;
+            % torque saturation (optional)
+            %U_hold = min(max(U_hold, -U_max), U_max);
         end
+        U = U_hold;
+        U(controller_off) = 0;        % 对应关节控制器关掉，但系统继续运行
 
         % log
         U_traj = [U_traj, U];
